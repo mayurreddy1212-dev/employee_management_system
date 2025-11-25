@@ -1,19 +1,20 @@
 import time
 import jwt
+from os import getenv
 
-SECRET_KEY = "SUPER_SECRET_KEY"
-ALGORITHM = "HS256"
+SECRET_KEY = getenv("SECRET_KEY")
+ALGORITHM = getenv("ALGORITHM", "HS256")
 
-def create_token(data: dict, expires_in=3600):
-    payload = data.copy()
-    payload["exp"] = time.time() + expires_in
+def create_token(data: dict):
+    payload = {
+        **data,
+        "exp": time.time() + 3600
+    }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-def verify_token(token: str):
+def decode_token(token: str):
     try:
         decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return decoded
-    except jwt.ExpiredSignatureError:
-        return None
-    except jwt.InvalidTokenError:
+    except:
         return None

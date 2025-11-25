@@ -8,6 +8,9 @@ from app.schemas.auth_schema import LoginRequest, LoginResponse
 from app.db.models import User
 from app.auth.jwt_handler import create_token
 from sqlalchemy.orm import Session
+from app.utils.hash import hash_password
+from app.utils.hash import verify_password
+from app.auth.jwt_handler import create_token
 
 #create fastapi instance
 app=FastAPI()
@@ -32,27 +35,20 @@ async def root():
 @app.post("/login", response_model=LoginResponse)
 def login(credentials: LoginRequest, db: Session = Depends(get_db)):
 
-    # Find user by username
     user = db.query(User).filter(User.username == credentials.username).first()
 
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(404, "User not found")
 
-    # Password check (plain — hashing later)
-    if user.password != credentials.password:
-        raise HTTPException(status_code=401, detail="Invalid password")
+    if not verify_password(credentials.password, user.password):
+        raise HTTPException(401, "Invalid password")
 
-    # Generate JWT token
     token = create_token({
         "id": user.id,
         "username": user.username,
         "role": user.role
     })
 
-    return {
-        "access_token": token,
-        "token_type": "bearer"
-    }
 
 #create user
 @app.post("/users", response_model=UserResponse, dependencies=[Depends(JWTBearer(roles=["admin"]))])
@@ -66,10 +62,12 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == user.email).first():
         raise HTTPException(status_code=400, detail="Email already exists")
 
+    hashed_pw = hash_password(user.password)
+
     new_user = User(
         username=user.username,
         email=user.email,
-        password=user.password,  # hashing later
+        password=hashed_pw,
         role=user.role,
         is_active=True
     )
