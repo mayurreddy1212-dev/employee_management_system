@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+
+# Env
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Virtual environments
+venv/
+env/
+
+# Database
+*.db
+
+# PyCharm
+*.iml
